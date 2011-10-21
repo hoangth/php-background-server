@@ -1,0 +1,54 @@
+/**
+ * class Server
+ * 
+ *    .oooooo..o                                                   
+ *	d8P'    `Y8                                                   
+ *	Y88bo.       .ooooo.  oooo d8b oooo    ooo  .ooooo.  oooo d8b 
+ *	 `"Y8888o.  d88' `88b `888""8P  `88.  .8'  d88' `88b `888""8P 
+ *	     `"Y88b 888ooo888  888       `88..8'   888ooo888  888     
+ *	oo     .d8P 888    .o  888        `888'    888    .o  888     
+ *	8""88888P'  `Y8bod8P' d888b        `8'     `Y8bod8P' d888b                                                     
+ * 
+ * Handles client output and long tasks running after the client has been served.
+ * 
+ * 	                                   oooo   o8o  oooo                           .   oooo         o8o           
+ *                                     `888   `"'  `888                         .o8   `888         `"'           
+ * oooo  oooo   .oooo.o  .ooooo.        888  oooo   888  oooo   .ooooo.       .o888oo  888 .oo.   oooo   .oooo.o 
+ * `888  `888  d88(  "8 d88' `88b       888  `888   888 .8P'   d88' `88b        888    888P"Y88b  `888  d88(  "8 
+ *	888   888  `"Y88b.  888ooo888       888   888   888888.    888ooo888        888    888   888   888  `"Y88b.  
+ *	888   888  o.  )88b 888    .o       888   888   888 `88b.  888    .o        888 .  888   888   888  o.  )88b 
+ *	`V88V"V8P' 8""888P' `Y8bod8P'      o888o o888o o888o o888o `Y8bod8P'        "888" o888o o888o o888o 8""888P' 
+ * 
+ * @uses
+ * 
+ * 	First register output functions:
+ * 
+ *		e.g. Server::registerOutputFunction($anObject, 'aFunctionThatEchoesTheResponse');
+ *
+ *
+ *	Second register functions which need to be completed before the response is final:
+ *
+ *		e.g. Server::registerSyncFunction('session_write_close');
+ *
+ *
+ *	Third register "long-running" functions (e.g. > 100ms) which have to be executed but should not affect the server's response time to a client request.
+ *
+ *		e.g. Server::registerBackgroundFunction($anotherObject, 'aLongRunningFunction');
+ *
+ *
+ *	Lastly, run everything:
+ *
+ *		Server::end();
+ * 
+ * 
+ * 
+ * @category Classes
+ * @package Classes
+ * @author Robert Biehl <robert.biehl@fashionfreax.net>
+ * @copyright Copyright (c) 2011, Empora GmbH
+ * 
+ * @license http://www.gnu.org/licenses/gpl.html
+ * 
+ * @link	https://github.com/RobertBiehl/php-background-server
+ * 
+*/
