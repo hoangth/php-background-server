@@ -23,8 +23,10 @@
  * @uses
  * 
  * 	First register output functions:
- * 
- *		e.g. Server::registerOutputFunction($anObject, 'aFunctionThatEchoesTheResponse');
+ * 		e.g.	instead of
+ 				$anObject->aFunctionThatEchoesTheResponse();
+ 			use
+ *				Server::registerOutputFunction($anObject, 'aFunctionThatEchoesTheResponse');
  *
  *
  *	Second register functions which need to be completed before the response is final:
