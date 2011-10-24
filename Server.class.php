@@ -112,7 +112,8 @@ class Server{
 //		                               888                           
 //		                              o888o     
 //
-//		Runs tasks providing the actual output to the client.                     
+//		Runs tasks providing the actual output to the client. 
+                    
 		foreach(self::$outputFunctions as $task){
 			$task['object'] ? call_user_func_array(array($task['object'], $task['functionName']), $task['params']) : call_user_func_array($task['functionName'], $task['params']);
 		}
