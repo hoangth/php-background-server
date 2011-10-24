@@ -23,10 +23,8 @@
  * @uses
  * 
  * 	First register output functions:
- * 		e.g.	instead of
- 				$anObject->aFunctionThatEchoesTheResponse();
- 			use
- *				Server::registerOutputFunction($anObject, 'aFunctionThatEchoesTheResponse');
+ * 
+ *		e.g. Server::registerOutputFunction($anObject, 'aFunctionThatEchoesTheResponse');
  *
  *
  *	Second register functions which need to be completed before the response is final:
@@ -61,46 +59,47 @@ class Server{
 	private static $syncFunctions = array();
 	private static $backgroundFunctions = array();
 	
-	public static function registerOutputFunction($object, $functionName=NULL){
-		if(!$functionName)
-			self::$outputFunctions[] = $object;
-		else
-			self::$outputFunctions[] = array(
-				'object' => $object,
-				'functionName' => $functionName
-			);
+	public static function registerOutputFunction($object, $functionName=NULL, $params=NULL){
+		self::_registerFunction(self::$outputFunctions, func_get_args());
 	}
 	
-	public static function registerSyncFunction($object, $functionName=NULL){
-		if(!$functionName)
-			self::$syncFunctions[] = $object;
-		else
-			self::$syncFunctions[] = array(
-				'object' => $object,
-				'functionName' => $functionName
-			);
+	public static function registerSyncFunction($object, $functionName=NULL, $params=NULL){
+		self::_registerFunction(self::$syncFunctions, func_get_args());
 	}
 	
-	public static function registerBackgroundFunction($object, $functionName=NULL){
+	public static function registerBackgroundFunction($object, $functionName=NULL, $params=NULL){
+		self::_registerFunction(self::$backgroundFunctions, func_get_args());
+	}
+	
+	private static function _registerFunction(&$array, $args){
+		list($object, $functionName, $params) = $args;
+		
+		$key = (is_object($object) ? spl_object_hash($object) : $object).'::'.$functionName.md5(json_encode($params));
+
 		if(!$functionName)
-			self::$backgroundFunctions[] = $object;
+			$array[$key] = array(
+				'functionName' => $object,
+				'params' => $params ? $params : array()
+			);
 		else
-			self::$backgroundFunctions[] = array(
+			$array[$key] = array(
 				'object' => $object,
-				'functionName' => $functionName
+				'functionName' => $functionName,
+				'params' => $params ? $params : array()
 			);
 	}
 	
 	public static function end(){
 		
-//...........................................................
-															//	       .o   .o
-		ob_end_clean();										//	      .8'  .8'
-		//header("Content-Encoding: none\r\n");				//	  .888888888888'	OPENS
-		ignore_user_abort(true);	// optional				//	    .8'  .8'		RESPONSE
-		ob_start();					// OUTER				//	.888888888888'		BUFFER
-		if(!ob_start("ob_gzhandler"))						//	  .8'  .8'
-			ob_start();				// INNER				//	 .8'  .8'
+//......OPENS.RESPONSE.BUFFER................................
+
+		ob_end_clean();
+		//header("Content-Encoding: none\r\n");
+		ignore_user_abort(true);	// optional
+		ob_start();					// OUTER BUFFER
+		if(!ob_start("ob_gzhandler"))		
+			ob_start();				// INNER BUFFER
+			
 //...........................................................
 //
 //		                          .                              .   
@@ -115,7 +114,7 @@ class Server{
 //
 //		Runs tasks providing the actual output to the client.                     
 		foreach(self::$outputFunctions as $task){
-			is_array($task) ? call_user_func(array($task['object'], $task['functionName'])) : call_user_func($task);
+			$task['object'] ? call_user_func_array(array($task['object'], $task['functionName']), $task['params']) : call_user_func_array($task['functionName'], $task['params']);
 		}
 		
 //		                                                  .                      oooo                 
@@ -131,17 +130,28 @@ class Server{
 //		Runs tasks which need to be finished before the response is sent (e.g. writing session data)
 
 		foreach(self::$syncFunctions as $task){
-			is_array($task) ? call_user_func(array($task['object'], $task['functionName'])) : call_user_func($task);
+			$task['object'] ? call_user_func_array(array($task['object'], $task['functionName']), $task['params']) : call_user_func_array($task['functionName'], $task['params']);
 		}
 		
-//...........................................................		
-															//	       .o   .o 
-		ob_end_flush();	$size = ob_get_length();			//	      .8'  .8'   
-		header("Content-Length: $size\r\n\r\n");			//	  .888888888888'	CLOSES
-		ob_end_flush();	// Strange behaviour, will not		//	    .8'  .8'		THIS
-		flush();		// work unless both are called!		//	.888888888888'		RESPONSE
-		ob_end_clean();										//	  .8'  .8'
-															//	 .8'  .8'
+//......CLOSES.THIS.RESPONSE.................................
+		
+		ob_end_flush();
+		
+		// So why do we close the connection sometimes?
+		//
+		// If background functions still run when the client issues the next request and the connection
+		// is being reused, it needs to wait until the last request has been finished (at least with Apache).
+		// 
+		// If you have a better idea how to solve this let me know.
+		if(sizeof(self::$backgroundFunctions))   
+			header("Connection: close");
+		
+		$size = ob_get_length();			
+		header("Content-Length: $size\r\n\r\n");
+		ob_end_flush();		// Strange behaviour, will not
+		flush();		// work unless both are called!
+		while(ob_get_level()> 0) ob_end_clean();
+
 //...........................................................
 //
 //		 .o8                           oooo                                                                    .o8         .                      oooo                 
@@ -153,9 +163,8 @@ class Server{
 //		 `Y8bod8P' `Y888""8o `Y8bod8P' o888o o888o `8oooooo.  d888b    `Y8bod8P'  `V88V"V8P' o888o o888o `Y8bod88P"      "888" `Y888""8o 8""888P' o888o o888o 8""888P' 
 //		                                           d"     YD                                                                                                           
 //		                                           "Y88888P'            
-		
 		foreach(self::$backgroundFunctions as $task){
-			is_array($task) ? call_user_func(array($task['object'], $task['functionName'])) : call_user_func($task);
+			$task['object'] ? call_user_func_array(array($task['object'], $task['functionName']), $task['params']) : call_user_func_array($task['functionName'], $task['params']);
 		}
 	}
 }
